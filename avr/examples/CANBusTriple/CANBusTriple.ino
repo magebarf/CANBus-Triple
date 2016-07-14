@@ -188,6 +188,8 @@ void readBus( CANBus bus )
 {
   byte rx_status = bus.readStatus();
   if (rx_status & 0x1) readMsgFromBuffer(bus, 0, rx_status);
+  /* In case frame has been received while reading the previous rx buffer */
+  rx_status = bus.readStatus();
   if (rx_status & 0x2) readMsgFromBuffer(bus, 1, rx_status);
 }
 
