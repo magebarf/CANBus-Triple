@@ -140,7 +140,7 @@ void loop()
   if ( digitalRead(CAN3INT_D) == 0 ) readBus(CANBus3);
 
   // Process received CAN message through middleware
-  if (!readQueue.isEmpty()) {
+  while (!readQueue.isEmpty()) {
     Message msg = readQueue.pop();
     for(int i = 0; i <= activeMiddlewareLength - 1; i++) msg = activeMiddleware[i]->process(msg);
     if (msg.dispatch && !writeQueue.isFull()) writeQueue.push(msg);
