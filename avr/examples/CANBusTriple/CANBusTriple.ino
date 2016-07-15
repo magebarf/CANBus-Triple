@@ -187,9 +187,10 @@ boolean sendMessage( Message msg, CANBus bus )
 void readBus( CANBus bus )
 {
   byte rx_status = bus.readStatus();
+  int maxReads = 2;
 
   /* Loop as long as there's data in receive buffers. */
-  while (rx_status & 0x3)
+  while (rx_status & 0x3 && maxReads--)
   {
     if (rx_status & 0x1) readMsgFromBuffer(bus, 0, rx_status);
     if (rx_status & 0x2) readMsgFromBuffer(bus, 1, rx_status);
