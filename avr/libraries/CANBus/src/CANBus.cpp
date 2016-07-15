@@ -12,6 +12,10 @@ Modified by Derek Kuschel for use with multiple MCP2515
 //define OLD_BAUD
 #define FREQ 16
 
+#define SPI_FREQUENCY_MAX 8000000
+#define SpiBegin() SPI.beginTransaction(SPISettings(SPI_FREQUENCY_MAX, MSBFIRST, SPI_MODE0))
+#define SpiEnd() SPI.endTransaction()
+
 
 CANBus::CANBus( int ss, int reset, unsigned int bid, String nameString )
 {
@@ -61,11 +65,13 @@ void CANBus::begin()
 // Constructor for initializing can module.
 void CANBus::reset()
 {
+    SpiBegin();
     digitalWrite(_ss, LOW);
     delay(1);
     SPI.transfer(RESET_REG);
     delay(1);
     digitalWrite(_ss, HIGH);
+    SpiEnd();
 }
 
 #ifdef OLD_BAUD
@@ -217,12 +223,14 @@ bool CANBus::baudConfig(int bitRate)//sets bitrate for CAN node
 
 void CANBus::bitModify( byte reg, byte value, byte mask )
 {
+    SpiBegin();
     digitalWrite(_ss, LOW);
     SPI.transfer(BIT_MODIFY);
     SPI.transfer(reg);
     SPI.transfer(mask);
     SPI.transfer(value);
     digitalWrite(_ss, HIGH);
+    SpiEnd();
 }
 
 
@@ -415,9 +423,11 @@ void CANBus::transmitBuffer(int bufferId) // Transmits buffer
     // In testing we found that any lost data was from PC<->Serial Delays,
     // not CAN Controller/AVR delays. Thus removing the delays at this level
     // allows maximum flexibility and performance.
+    SpiBegin();
     digitalWrite(_ss, LOW);
     SPI.transfer(bufAddr);
     digitalWrite(_ss, HIGH);
+    SpiEnd();
 }
 
 
@@ -429,6 +439,7 @@ void CANBus::readFullFrame(byte buffer_id, byte* length_out, byte *data_out, uns
     byte len, i;
     unsigned short id_h, id_l;
 
+    SpiBegin();
     digitalWrite(_ss, LOW);
     SPI.transfer((buffer_id == 0)? READ_RX_BUF_0_ID : READ_RX_BUF_1_ID);
     id_h = (unsigned short) SPI.transfer(0xFF); //id high
@@ -440,6 +451,8 @@ void CANBus::readFullFrame(byte buffer_id, byte* length_out, byte *data_out, uns
         data_out[i] = SPI.transfer(0xFF);
     }
     digitalWrite(_ss, HIGH);
+    SpiEnd();
+
     (*length_out) = len;
     (*id_out) = ((id_h << 3) + ((id_l & 0xE0) >> 5)); // Repack identifier
 }
@@ -448,10 +461,12 @@ void CANBus::readFullFrame(byte buffer_id, byte* length_out, byte *data_out, uns
 byte CANBus::readStatus()
 {
     byte retVal;
+    SpiBegin();
     digitalWrite(_ss, LOW);
     SPI.transfer(READ_STATUS);
     retVal = SPI.transfer(0xFF);
     digitalWrite(_ss, HIGH);
+    SpiEnd();
     return retVal;
 }
 
@@ -459,16 +474,19 @@ byte CANBus::readStatus()
 byte CANBus::readRegister( int addr )
 {
     byte retVal;
+    SpiBegin();
     digitalWrite(_ss, LOW);
     SPI.transfer(READ);
     SPI.transfer(addr);
     retVal = SPI.transfer(0xFF);
     digitalWrite(_ss, HIGH);
+    SpiEnd();
     return retVal;
 }
 
 void CANBus::writeRegister( int addr, byte value )
 {
+    SpiBegin();
     digitalWrite(_ss, LOW);
     delay(1);
     SPI.transfer(WRITE);
@@ -476,6 +494,7 @@ void CANBus::writeRegister( int addr, byte value )
     SPI.transfer(value);
     delay(1);
     digitalWrite(_ss, HIGH);
+    SpiEnd();
     delay(1);
 }
 
@@ -485,6 +504,7 @@ void CANBus::writeRegister11bit( int addr, int value )
     byte bReg1 = value >> 3;
     byte bReg2 = value << 5;
 
+    SpiBegin();
     digitalWrite(_ss, LOW);
     delay(1);
     SPI.transfer(WRITE);
@@ -493,6 +513,7 @@ void CANBus::writeRegister11bit( int addr, int value )
     SPI.transfer(bReg2);
     delay(1);
     digitalWrite(_ss, HIGH);
+    SpiEnd();
     delay(1);
 }
 
@@ -574,6 +595,7 @@ void CANBus::loadFullFrame(byte bufferId, byte length, unsigned short identifier
     id_high = (byte) (identifier >> 3);
     id_low = (byte) ((identifier << 5) & 0x00E0);
 
+    SpiBegin();
     digitalWrite(_ss, LOW);
     SPI.transfer(bufAddr);
     SPI.transfer(id_high); // Identifier high bits
@@ -585,4 +607,5 @@ void CANBus::loadFullFrame(byte bufferId, byte length, unsigned short identifier
         SPI.transfer(data[i]);
     }
     digitalWrite(_ss, HIGH);
+    SpiEnd();
 }
